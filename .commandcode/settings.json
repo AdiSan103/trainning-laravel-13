@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__laravel-boost__application-info",
+      "mcp__laravel-boost__database-schema",
+      "Shell(php artisan make:model Post --migration --factory --no-interaction)",
+      "Shell(php artisan make:controller PostController --resource --no-interaction)",
+      "Shell(php artisan config:show app.env)",
+      "mcp__laravel-boost__search-docs",
+      "Shell(php artisan test --compact)",
+      "Shell(vendor/bin/pint:*)",
+      "powershell"
+    ],
+    "deny": [],
+    "defaultMode": "default"
+  }
+}

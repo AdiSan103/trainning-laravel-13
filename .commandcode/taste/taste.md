@@ -1,0 +1,1 @@
+- Expects the assistant to read project-level context files (`.claude`, `CLAUDE.md`) for knowledge and project setup before beginning any task. Confidence: 0.85
