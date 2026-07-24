@@ -1,58 +1,159 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# 📝 Belajar Laravel — Blog CRUD + Authentication
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplikasi blog sederhana untuk belajar Laravel, mencakup fitur CRUD Post (dengan upload gambar) dan sistem authentication lengkap (register, login, edit profil, ganti password, logout).
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## 🧠 What is This Project
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Aplikasi ini dibangun sebagai latihan memahami konsep-konsep fundamental Laravel:
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- **MVC (Model-View-Controller)** — struktur inti framework
+- **Eloquent ORM** — database query builder + relationship
+- **Blade Template Engine** — layout inheritance, components, directives
+- **Validation** — server-side input validation rules
+- **File Upload** — storage disk, upload handling
+- **Authentication** — session-based guard, middleware, password hashing
+- **Testing (Pest)** — feature test dengan `RefreshDatabase`, `Storage::fake()`, `UploadedFile::fake()`
 
-## Learning Laravel
+## 🛠️ Tech Stack
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+| Layer | Teknologi |
+|---|---|
+| Backend | **PHP 8.3**, **Laravel 13** |
+| Database | **SQLite** (dev/test), **MySQL** (production) |
+| Frontend | **Blade**, **Tailwind CSS v4** (CDN) |
+| Testing | **Pest v4** |
+| Formatter | **Laravel Pint** |
+| Build | **Vite** |
+| AI Tools | **Laravel Boost**, **Claude Code Skills** |
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 📦 Installed Packages
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+| Package | Versi | Fungsi |
+|---|---|---|
+| `laravel/framework` | ^13.8 | Core framework |
+| `laravel/tinker` | ^3.0 | Interactive REPL |
+| `laravel/boost` | ^2.2 | AI coding agent tools |
+| `pestphp/pest` | ^4.7 | Testing framework |
+| `laravel/pint` | ^1.27 | Code formatter |
+| `fakerphp/faker` | ^1.23 | Dummy data generator |
 
-## Agentic Development
+## 🗺️ Route List
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+| URL | Method | Middleware | Nama Route | Handler |
+|---|---|---|---|---|
+| `/` | GET | — | — | `PostController@index` |
+| `/posts` | GET | — | `posts.index` | `PostController@index` |
+| `/posts/create` | GET | — | `posts.create` | `PostController@create` |
+| `/posts` | POST | — | `posts.store` | `PostController@store` |
+| `/posts/{post}` | GET | — | `posts.show` | `PostController@show` |
+| `/posts/{post}/edit` | GET | — | `posts.edit` | `PostController@edit` |
+| `/posts/{post}` | PUT/PATCH | — | `posts.update` | `PostController@update` |
+| `/posts/{post}` | DELETE | — | `posts.destroy` | `PostController@destroy` |
+| `/register` | GET | `guest` | `register` | `AuthController@showRegister` |
+| `/register` | POST | `guest` | — | `AuthController@register` |
+| `/login` | GET | `guest` | `login` | `AuthController@showLogin` |
+| `/login` | POST | `guest` | — | `AuthController@login` |
+| `/profile` | GET | `auth` | `profile.edit` | `AuthController@showProfile` |
+| `/profile` | PUT | `auth` | `profile.update` | `AuthController@updateProfile` |
+| `/profile/password` | PUT | `auth` | `profile.password` | `AuthController@updatePassword` |
+| `/logout` | POST | `auth` | `logout` | `AuthController@logout` |
 
-```bash
-composer require laravel/boost --dev
+## 📁 Project Structure (File Penting)
 
-php artisan boost:install
+```
+app/
+├── Http/
+│   └── Controllers/
+│       ├── AuthController.php      ← Register, login, profile, logout
+│       ├── PostController.php      ← CRUD Post + upload gambar
+│       └── Controller.php          ← Base controller
+├── Models/
+│   ├── Post.php                    ← fillable: title, body, image + accessor image_url
+│   └── User.php                    ← Authenticatable + auto-hash password
+└── Providers/
+    └── AppServiceProvider.php
+
+database/
+├── factories/
+│   ├── PostFactory.php             ← Data dummy untuk testing
+│   └── UserFactory.php
+├── migrations/
+│   ├── 0001_01_01_000000_create_users_table.php
+│   ├── 0001_01_01_000001_create_cache_table.php
+│   ├── 0001_01_01_000002_create_jobs_table.php
+│   └── 2026_07_24_061333_create_posts_table.php  ← title, body, image(nullable)
+└── seeders/
+    └── DatabaseSeeder.php
+
+resources/views/
+├── layouts/
+│   └── app.blade.php               ← Layout utama + navbar (auth/guest)
+├── auth/
+│   ├── login.blade.php
+│   ├── profile.blade.php           ← Edit nama/email + ganti password
+│   └── register.blade.php
+└── posts/
+    ├── create.blade.php            ← Form + upload gambar
+    ├── edit.blade.php              ← Form + preview gambar + upload baru
+    ├── index.blade.php             ← Daftar post + thumbnail gambar
+    └── show.blade.php              ← Detail post + gambar full
+
+routes/
+├── web.php                         ← Semua route (posts + auth)
+└── console.php
+
+tests/
+├── Feature/
+│   ├── AuthTest.php                ← 18 test (register, login, profile, logout)
+│   ├── PostTest.php                ← 15 test (CRUD + upload gambar)
+│   └── ExampleTest.php
+├── Unit/
+│   └── ExampleTest.php
+├── TestCase.php
+└── Pest.php
+
+docs-feature/
+└── authentication.md               ← Dokumentasi lengkap fitur auth
+
+process-learn.md                    ← Panduan belajar CRUD Laravel (Bahasa Indonesia)
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+## 🚀 Cara Menjalankan
 
-## Contributing
+```bash
+# Install dependencies
+composer install
+npm install
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+# Copy .env
+cp .env.example .env
 
-## Code of Conduct
+# Generate app key
+php artisan key:generate
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# Jalankan migration
+php artisan migrate
 
-## Security Vulnerabilities
+# Storage symlink (untuk upload gambar)
+php artisan storage:link
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# Jalankan dev server
+composer run dev
+```
 
-## License
+## ✅ Testing
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+```bash
+# Jalankan semua test
+php artisan test --compact
+
+# Filter test spesifik
+php artisan test --compact --filter="post baru dapat disimpan"
+
+# Format kode
+php vendor/bin/pint
+```
+
+**Hasil Terakhir:** Tests: 33 passed (82 assertions)
