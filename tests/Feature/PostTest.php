@@ -2,8 +2,11 @@
 
 use App\Models\Post;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+
+uses(RefreshDatabase::class);
 
 beforeEach(function () {
     $this->withoutMiddleware(PreventRequestForgery::class);

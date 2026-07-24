@@ -14,7 +14,19 @@
         <div class="max-w-4xl mx-auto px-4 py-3">
             <div class="flex justify-between items-center">
                 <a href="/" class="text-xl font-bold text-gray-800">📝 Belajar Laravel</a>
-                <a href="{{ route('posts.index') }}" class="text-gray-600 hover:text-gray-800">Posts</a>
+                <div class="flex items-center gap-4">
+                    <a href="{{ route('posts.index') }}" class="text-gray-600 hover:text-gray-800">Posts</a>
+                    @auth
+                        <a href="{{ route('profile.edit') }}" class="text-gray-600 hover:text-gray-800">👤 {{ Auth::user()->name }}</a>
+                        <form action="{{ route('logout') }}" method="POST" class="inline">
+                            @csrf
+                            <button type="submit" class="text-red-500 hover:text-red-700 text-sm">Logout</button>
+                        </form>
+                    @else
+                        <a href="{{ route('login') }}" class="text-gray-600 hover:text-gray-800">Login</a>
+                        <a href="{{ route('register') }}" class="text-gray-600 hover:text-gray-800">Daftar</a>
+                    @endauth
+                </div>
             </div>
         </div>
     </nav>
