@@ -11,5 +11,10 @@ class Post extends Model
     /** @use HasFactory<PostFactory> */
     use HasFactory;
 
-    protected $fillable = ['title', 'body'];
+    protected $fillable = ['title', 'body', 'image'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image ? asset('storage/'.$this->image) : null;
+    }
 }

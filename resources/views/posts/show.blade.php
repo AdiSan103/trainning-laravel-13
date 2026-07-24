@@ -10,6 +10,9 @@
                 &middot; Diperbarui {{ $post->updated_at->diffForHumans() }}
             @endif
         </p>
+        @if ($post->image_url)
+            <img src="{{ $post->image_url }}" alt="{{ $post->title }}" class="w-full max-w-md rounded mb-4">
+        @endif
         <hr class="mb-4">
         <div class="prose max-w-none text-gray-700 whitespace-pre-line">
             {{ $post->body }}

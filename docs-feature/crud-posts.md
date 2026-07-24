@@ -10,7 +10,8 @@
 6. [Langkah 4: Mendaftarkan Routes](#langkah-4-mendaftarkan-routes)
 7. [Langkah 5: Menjalankan Migration & Testing](#langkah-5-menjalankan-migration--testing)
 8. [Langkah 6: Testing dengan Pest](#langkah-6-testing-dengan-pest)
-9. [Kesimpulan & File yang Dibuat](#kesimpulan--file-yang-dibuat)
+9. [Langkah 7: Menambahkan Upload Gambar](#langkah-7-menambahkan-upload-gambar)
+10. [Kesimpulan & File yang Dibuat](#kesimpulan--file-yang-dibuat)
 
 ---
 
@@ -23,6 +24,7 @@ Kita membuat fitur **CRUD (Create, Read, Update, Delete)** untuk entitas **Post*
 - **Membuat** post baru (`create` + `store`)
 - **Mengedit** post yang sudah ada (`edit` + `update`)
 - **Menghapus** post (`destroy`)
+- **Upload gambar** pada setiap post (opsional)
 
 ---
 
@@ -66,14 +68,15 @@ Migration menentukan struktur tabel di database:
 ```php
 // database/migrations/xxxx_create_posts_table.php
 Schema::create('posts', function (Blueprint $table) {
-    $table->id();           // Primary key, auto-increment
+    $table->id();            // Primary key, auto-increment
     $table->string('title'); // Kolom judul (VARCHAR 255)
     $table->text('body');    // Kolom isi (TEXT)
+    $table->string('image')->nullable(); // Kolom path gambar (opsional)
     $table->timestamps();    // created_at & updated_at
 });
 ```
 
-> **Penjelasan**: `string('title')` artinya kolom VARCHAR(255), `text('body')` artinya TEXT (bisa menampung teks panjang).
+> **Penjelasan**: `string('title')` artinya kolom VARCHAR(255), `text('body')` artinya TEXT (bisa menampung teks panjang). `nullable()` artinya kolom boleh kosong (NULL).
 
 ### Isi Model
 
@@ -83,7 +86,12 @@ class Post extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['title', 'body'];
+    protected $fillable = ['title', 'body', 'image'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->image ? asset('storage/' . $this->image) : null;
+    }
 }
 ```
 
@@ -295,6 +303,180 @@ test('post baru dapat disimpan', function () {
 
 ---
 
+## Langkah 7: Menambahkan Upload Gambar
+
+### Konsep Dasar File Upload di Laravel
+
+Laravel menyediakan **Filesystem** untuk menyimpan file. Kita akan menggunakan disk `public` yang menyimpan file di `storage/app/public/` dan bisa diakses via URL `/storage/...`.
+
+**Storage Link**: Jalankan `php artisan storage:link` untuk membuat symlink dari `public/storage` ke `storage/app/public/`.
+
+### 1. Menambah Kolom `image` di Migration
+
+Kolom gambar bertipe `string` (menyimpan path file) dan `nullable()` karena gambar opsional:
+
+```php
+$table->string('image')->nullable();
+```
+
+### 2. Menambah `image` ke `$fillable` Model
+
+```php
+protected $fillable = ['title', 'body', 'image'];
+```
+
+### 3. Membuat Accessor `image_url`
+
+Accessor memudahkan mendapatkan URL lengkap gambar:
+
+```php
+public function getImageUrlAttribute(): ?string
+{
+    return $this->image ? asset('storage/' . $this->image) : null;
+}
+```
+
+Gunakan `$post->image_url` di Blade untuk mendapatkan URL gambar.
+
+### 4. Menangani Upload di Controller
+
+#### Validasi Gambar
+
+```php
+'image' => ['nullable', 'image', 'max:2048'],
+```
+
+| Aturan | Penjelasan |
+|---|---|
+| `nullable` | Field tidak wajib diisi |
+| `image` | Harus file gambar (jpg, png, gif, webp, dll) |
+| `max:2048` | Maksimal 2MB (dalam kilobyte) |
+
+#### Store: Menyimpan File
+
+```php
+if ($request->hasFile('image')) {
+    $validated['image'] = $request->file('image')->store('posts', 'public');
+}
+```
+
+`store('posts', 'public')` menyimpan file ke `storage/app/public/posts/` dan mengembalikan path relatif seperti `posts/abc123.jpg`.
+
+#### Update: Menghapus Gambar Lama
+
+```php
+if ($request->hasFile('image')) {
+    if ($post->image) {
+        Storage::disk('public')->delete($post->image);
+    }
+    $validated['image'] = $request->file('image')->store('posts', 'public');
+}
+```
+
+#### Destroy: Membersihkan File
+
+```php
+if ($post->image) {
+    Storage::disk('public')->delete($post->image);
+}
+```
+
+### 5. Menampilkan Gambar di View
+
+#### Index (Thumbnail)
+
+```blade
+@if ($post->image_url)
+    <img src="{{ $post->image_url }}" alt="{{ $post->title }}" class="w-24 h-24 object-cover rounded">
+@endif
+```
+
+#### Show (Full Size)
+
+```blade
+@if ($post->image_url)
+    <img src="{{ $post->image_url }}" alt="{{ $post->title }}" class="w-full max-w-md rounded mb-4">
+@endif
+```
+
+#### Edit (Preview Gambar Lama)
+
+```blade
+@if ($post->image_url)
+    <img src="{{ $post->image_url }}" alt="{{ $post->title }}" class="w-48 rounded mb-2">
+@endif
+```
+
+### 6. Form Upload
+
+```blade
+<form method="POST" enctype="multipart/form-data">
+    <input type="file" name="image" accept="image/*">
+</form>
+```
+
+> **Penting**: Jangan lupa `enctype="multipart/form-data"` di form! Tanpa ini, file tidak akan terkirim.
+
+### 7. Testing Upload Gambar dengan Pest
+
+```php
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+test('post baru dapat disimpan dengan gambar', function () {
+    Storage::fake('public');
+    $image = UploadedFile::fake()->image('foto.jpg', 800, 600);
+
+    $this->post(route('posts.store'), [
+        'title' => 'Post Dengan Gambar',
+        'body' => 'Isi.',
+        'image' => $image,
+    ]);
+
+    Storage::disk('public')->assertExists(
+        Post::first()->image
+    );
+});
+```
+
+> **Penjelasan**: `Storage::fake('public')` membuat disk palsu di memory — tidak benar-benar menulis ke filesystem. `UploadedFile::fake()->image()` membuat file gambar dummy untuk testing.
+
+Test untuk update gambar:
+
+```php
+test('post dapat diperbarui dengan gambar baru', function () {
+    Storage::fake('public');
+    $oldImage = UploadedFile::fake()->image('lama.jpg')->store('posts', 'public');
+    $post = Post::factory()->create(['image' => $oldImage]);
+
+    $newImage = UploadedFile::fake()->image('baru.jpg');
+    $this->put(route('posts.update', $post), [
+        'title' => 'Baru',
+        'body' => 'Isi.',
+        'image' => $newImage,
+    ]);
+
+    $post->refresh();
+    Storage::disk('public')->assertExists($post->image);
+    Storage::disk('public')->assertMissing($oldImage);
+});
+```
+
+### Ringkasan Langkah 7
+
+```
+1. Tambah kolom image (nullable string) di migration
+2. Tambah 'image' ke $fillable model + accessor image_url
+3. Validasi: 'nullable', 'image', 'max:2048'
+4. Store file: $request->file('image')->store('posts', 'public')
+5. Hapus file lama saat update atau destroy
+6. Tambah enctype="multipart/form-data" di form
+7. Tampilkan gambar dengan $post->image_url
+8. Test: Storage::fake() + UploadedFile::fake()->image()
+```
+
+---
+
 ## Kesimpulan & File yang Dibuat
 
 ### Alur CRUD Laravel (Ringkasan)
@@ -308,7 +490,8 @@ test('post baru dapat disimpan', function () {
 6. Buat view di resources/views/posts/  → Tampilan HTML
 7. Daftarkan route di web.php           → Hubungkan URL ke Controller
 8. php artisan migrate                  → Buat tabel di database
-9. php artisan test                     → Pastikan semua berfungsi
+9. php artisan storage:link             → Symlink storage ke public
+10. php artisan test                    → Pastikan semua berfungsi
 ```
 
 ### File yang Dibuat/Diubah
@@ -330,11 +513,11 @@ test('post baru dapat disimpan', function () {
 ### Hasil Test
 
 ```
-Tests:  11 passed (23 assertions)
-Duration: 2.13s
+Tests:  15 passed (38 assertions)
+Duration: 4.06s
 ```
 
-✅ Semua test **PASSED** — CRUD berfungsi dengan benar!
+✅ Semua test **PASSED** — CRUD + upload gambar berfungsi dengan benar!
 
 ---
 

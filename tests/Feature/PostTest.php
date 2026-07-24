@@ -2,6 +2,8 @@
 
 use App\Models\Post;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 beforeEach(function () {
     $this->withoutMiddleware(PreventRequestForgery::class);
@@ -91,4 +93,70 @@ test('validasi body wajib diisi saat create', function () {
     ]);
 
     $response->assertSessionHasErrors('body');
+});
+
+test('post baru dapat disimpan dengan gambar', function () {
+    Storage::fake('public');
+    $image = UploadedFile::fake()->image('foto.jpg', 800, 600);
+
+    $response = $this->post(route('posts.store'), [
+        'title' => 'Post Dengan Gambar',
+        'body' => 'Isi post dengan gambar.',
+        'image' => $image,
+    ]);
+
+    $response->assertRedirect(route('posts.index'));
+
+    $post = Post::where('title', 'Post Dengan Gambar')->first();
+    $this->assertNotNull($post->image);
+    $this->assertStringStartsWith('posts/', $post->image);
+});
+
+test('post dapat diperbarui dengan gambar baru', function () {
+    Storage::fake('public');
+    $oldImage = UploadedFile::fake()->image('lama.jpg')->store('posts', 'public');
+    $post = Post::factory()->create(['image' => $oldImage]);
+
+    $newImage = UploadedFile::fake()->image('baru.jpg', 800, 600);
+
+    $response = $this->put(route('posts.update', $post), [
+        'title' => 'Judul Baru',
+        'body' => 'Isi baru dengan gambar baru.',
+        'image' => $newImage,
+    ]);
+
+    $response->assertRedirect(route('posts.index'));
+
+    $post->refresh();
+    $this->assertNotEquals($oldImage, $post->image);
+    Storage::disk('public')->assertExists($post->image);
+    Storage::disk('public')->assertMissing($oldImage);
+});
+
+test('post dapat diperbarui tanpa mengubah gambar', function () {
+    Storage::fake('public');
+    $image = UploadedFile::fake()->image('tetap.jpg')->store('posts', 'public');
+    $post = Post::factory()->create(['image' => $image]);
+
+    $response = $this->put(route('posts.update', $post), [
+        'title' => 'Judul Diubah',
+        'body' => 'Isi diubah, gambar tetap.',
+    ]);
+
+    $response->assertRedirect(route('posts.index'));
+
+    $post->refresh();
+    $this->assertEquals($image, $post->image);
+    Storage::disk('public')->assertExists($image);
+});
+
+test('gambar dihapus bersama post', function () {
+    Storage::fake('public');
+    $image = UploadedFile::fake()->image('hapus.jpg')->store('posts', 'public');
+    $post = Post::factory()->create(['image' => $image]);
+
+    $this->delete(route('posts.destroy', $post));
+
+    $this->assertDatabaseMissing('posts', ['id' => $post->id]);
+    Storage::disk('public')->assertMissing($image);
 });

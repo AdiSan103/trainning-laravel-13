@@ -15,14 +15,21 @@
         <div class="space-y-4">
             @foreach ($posts as $post)
                 <div class="bg-white rounded shadow p-4">
-                    <h2 class="text-lg font-semibold">
-                        <a href="{{ route('posts.show', $post) }}" class="text-blue-600 hover:underline">
-                            {{ $post->title }}
-                        </a>
-                    </h2>
-                    <p class="text-gray-600 text-sm mt-1">{{ Str::limit($post->body, 100) }}</p>
-                    <div class="mt-2 text-sm text-gray-400">
-                        Dibuat {{ $post->created_at->diffForHumans() }}
+                    <div class="flex gap-4">
+                        @if ($post->image_url)
+                            <img src="{{ $post->image_url }}" alt="{{ $post->title }}" class="w-24 h-24 object-cover rounded flex-shrink-0">
+                        @endif
+                        <div>
+                            <h2 class="text-lg font-semibold">
+                                <a href="{{ route('posts.show', $post) }}" class="text-blue-600 hover:underline">
+                                    {{ $post->title }}
+                                </a>
+                            </h2>
+                            <p class="text-gray-600 text-sm mt-1">{{ Str::limit($post->body, 100) }}</p>
+                            <div class="mt-2 text-sm text-gray-400">
+                                Dibuat {{ $post->created_at->diffForHumans() }}
+                            </div>
+                        </div>
                     </div>
                 </div>
             @endforeach
