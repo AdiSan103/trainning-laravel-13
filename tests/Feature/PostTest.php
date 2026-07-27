@@ -18,7 +18,7 @@ test('halaman index menampilkan semua post', function () {
     $response = $this->get(route('posts.index'));
 
     $response->assertStatus(200);
-    $response->assertSee($posts[0]->title);
+    $response->assertSee($posts[0]->judul);
 });
 
 test('halaman create dapat diakses', function () {
@@ -29,12 +29,13 @@ test('halaman create dapat diakses', function () {
 
 test('post baru dapat disimpan', function () {
     $response = $this->post(route('posts.store'), [
-        'title' => 'Judul Post Baru',
-        'body' => 'Ini adalah isi dari post baru.',
+        'judul' => 'Judul Post Baru',
+        'deskripsi' => 'Ini adalah deskripsi post baru.',
+        'tanggal' => '2026-07-26',
     ]);
 
     $response->assertRedirect(route('posts.index'));
-    $this->assertDatabaseHas('posts', ['title' => 'Judul Post Baru']);
+    $this->assertDatabaseHas('post', ['judul' => 'Judul Post Baru']);
 });
 
 test('halaman show menampilkan detail post', function () {
@@ -43,8 +44,8 @@ test('halaman show menampilkan detail post', function () {
     $response = $this->get(route('posts.show', $post));
 
     $response->assertStatus(200);
-    $response->assertSee($post->title);
-    $response->assertSee($post->body);
+    $response->assertSee($post->judul);
+    $response->assertSee($post->deskripsi);
 });
 
 test('halaman edit dapat diakses', function () {
@@ -53,21 +54,22 @@ test('halaman edit dapat diakses', function () {
     $response = $this->get(route('posts.edit', $post));
 
     $response->assertStatus(200);
-    $response->assertSee($post->title);
+    $response->assertSee($post->judul);
 });
 
 test('post dapat diperbarui', function () {
     $post = Post::factory()->create();
 
     $response = $this->put(route('posts.update', $post), [
-        'title' => 'Judul Diperbarui',
-        'body' => 'Isi yang sudah diperbarui.',
+        'judul' => 'Judul Diperbarui',
+        'deskripsi' => 'Deskripsi yang sudah diperbarui.',
+        'tanggal' => '2026-07-27',
     ]);
 
     $response->assertRedirect(route('posts.index'));
-    $this->assertDatabaseHas('posts', [
-        'id' => $post->id,
-        'title' => 'Judul Diperbarui',
+    $this->assertDatabaseHas('post', [
+        'id_post' => $post->id_post,
+        'judul' => 'Judul Diperbarui',
     ]);
 });
 
@@ -77,25 +79,27 @@ test('post dapat dihapus', function () {
     $response = $this->delete(route('posts.destroy', $post));
 
     $response->assertRedirect(route('posts.index'));
-    $this->assertDatabaseMissing('posts', ['id' => $post->id]);
+    $this->assertDatabaseMissing('post', ['id_post' => $post->id_post]);
 });
 
-test('validasi title wajib diisi saat create', function () {
+test('validasi judul wajib diisi saat create', function () {
     $response = $this->post(route('posts.store'), [
-        'title' => '',
-        'body' => 'Isi saja tanpa judul.',
+        'judul' => '',
+        'deskripsi' => 'Deskripsi saja tanpa judul.',
+        'tanggal' => '2026-07-26',
     ]);
 
-    $response->assertSessionHasErrors('title');
+    $response->assertSessionHasErrors('judul');
 });
 
-test('validasi body wajib diisi saat create', function () {
+test('validasi deskripsi wajib diisi saat create', function () {
     $response = $this->post(route('posts.store'), [
-        'title' => 'Judul',
-        'body' => '',
+        'judul' => 'Judul',
+        'deskripsi' => '',
+        'tanggal' => '2026-07-26',
     ]);
 
-    $response->assertSessionHasErrors('body');
+    $response->assertSessionHasErrors('deskripsi');
 });
 
 test('post baru dapat disimpan dengan gambar', function () {
@@ -103,63 +107,66 @@ test('post baru dapat disimpan dengan gambar', function () {
     $image = UploadedFile::fake()->image('foto.jpg', 800, 600);
 
     $response = $this->post(route('posts.store'), [
-        'title' => 'Post Dengan Gambar',
-        'body' => 'Isi post dengan gambar.',
-        'image' => $image,
+        'judul' => 'Post Dengan Gambar',
+        'deskripsi' => 'Deskripsi post dengan gambar.',
+        'tanggal' => '2026-07-26',
+        'gambar' => $image,
     ]);
 
     $response->assertRedirect(route('posts.index'));
 
-    $post = Post::where('title', 'Post Dengan Gambar')->first();
-    $this->assertNotNull($post->image);
-    $this->assertStringStartsWith('posts/', $post->image);
+    $post = Post::where('judul', 'Post Dengan Gambar')->first();
+    $this->assertNotNull($post->gambar);
+    $this->assertStringStartsWith('posts/', $post->gambar);
 });
 
 test('post dapat diperbarui dengan gambar baru', function () {
     Storage::fake('public');
     $oldImage = UploadedFile::fake()->image('lama.jpg')->store('posts', 'public');
-    $post = Post::factory()->create(['image' => $oldImage]);
+    $post = Post::factory()->create(['gambar' => $oldImage]);
 
     $newImage = UploadedFile::fake()->image('baru.jpg', 800, 600);
 
     $response = $this->put(route('posts.update', $post), [
-        'title' => 'Judul Baru',
-        'body' => 'Isi baru dengan gambar baru.',
-        'image' => $newImage,
+        'judul' => 'Judul Baru',
+        'deskripsi' => 'Deskripsi baru dengan gambar baru.',
+        'tanggal' => '2026-07-27',
+        'gambar' => $newImage,
     ]);
 
     $response->assertRedirect(route('posts.index'));
 
     $post->refresh();
-    $this->assertNotEquals($oldImage, $post->image);
-    Storage::disk('public')->assertExists($post->image);
+    $this->assertNotEquals($oldImage, $post->gambar);
+    Storage::disk('public')->assertExists($post->gambar);
     Storage::disk('public')->assertMissing($oldImage);
 });
 
 test('post dapat diperbarui tanpa mengubah gambar', function () {
     Storage::fake('public');
     $image = UploadedFile::fake()->image('tetap.jpg')->store('posts', 'public');
-    $post = Post::factory()->create(['image' => $image]);
+    $post = Post::factory()->create(['gambar' => $image]);
 
     $response = $this->put(route('posts.update', $post), [
-        'title' => 'Judul Diubah',
-        'body' => 'Isi diubah, gambar tetap.',
+        'judul' => 'Judul Diubah',
+        'deskripsi' => 'Deskripsi diubah, gambar tetap.',
+        'tanggal' => '2026-07-27',
     ]);
 
     $response->assertRedirect(route('posts.index'));
 
     $post->refresh();
-    $this->assertEquals($image, $post->image);
+    $this->assertEquals($image, $post->gambar);
     Storage::disk('public')->assertExists($image);
 });
 
 test('gambar dihapus bersama post', function () {
     Storage::fake('public');
     $image = UploadedFile::fake()->image('hapus.jpg')->store('posts', 'public');
-    $post = Post::factory()->create(['image' => $image]);
+    $post = Post::factory()->create(['gambar' => $image]);
 
     $this->delete(route('posts.destroy', $post));
 
-    $this->assertDatabaseMissing('posts', ['id' => $post->id]);
+    $this->assertDatabaseMissing('post', ['id_post' => $post->id_post]);
     Storage::disk('public')->assertMissing($image);
 });

@@ -1,8 +1,9 @@
 <?php
 
-use App\Models\User;
+use App\Models\Login;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 
 uses(RefreshDatabase::class);
 
@@ -19,31 +20,18 @@ test('halaman register dapat diakses tamu', function () {
 
 test('user baru dapat mendaftar', function () {
     $response = $this->post(route('register'), [
-        'name' => 'Budi Santoso',
         'email' => 'budi@example.com',
         'password' => 'password123',
         'password_confirmation' => 'password123',
     ]);
 
     $response->assertRedirect(route('posts.index'));
-    $this->assertDatabaseHas('users', ['email' => 'budi@example.com']);
+    $this->assertDatabaseHas('login', ['email' => 'budi@example.com']);
     $this->assertAuthenticated();
-});
-
-test('validasi pendaftaran: name wajib', function () {
-    $response = $this->post(route('register'), [
-        'name' => '',
-        'email' => 'budi@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
-    ]);
-
-    $response->assertSessionHasErrors('name');
 });
 
 test('validasi pendaftaran: email wajib', function () {
     $response = $this->post(route('register'), [
-        'name' => 'Budi',
         'email' => '',
         'password' => 'password123',
         'password_confirmation' => 'password123',
@@ -53,10 +41,9 @@ test('validasi pendaftaran: email wajib', function () {
 });
 
 test('validasi pendaftaran: email harus unik', function () {
-    User::factory()->create(['email' => 'budi@example.com']);
+    Login::factory()->create(['email' => 'budi@example.com']);
 
     $response = $this->post(route('register'), [
-        'name' => 'Budi Lain',
         'email' => 'budi@example.com',
         'password' => 'password123',
         'password_confirmation' => 'password123',
@@ -67,7 +54,6 @@ test('validasi pendaftaran: email harus unik', function () {
 
 test('validasi pendaftaran: password minimal 8 karakter', function () {
     $response = $this->post(route('register'), [
-        'name' => 'Budi',
         'email' => 'budi@example.com',
         'password' => '1234567',
         'password_confirmation' => '1234567',
@@ -78,7 +64,6 @@ test('validasi pendaftaran: password minimal 8 karakter', function () {
 
 test('validasi pendaftaran: password harus dikonfirmasi', function () {
     $response = $this->post(route('register'), [
-        'name' => 'Budi',
         'email' => 'budi@example.com',
         'password' => 'password123',
         'password_confirmation' => 'berbeda',
@@ -95,10 +80,10 @@ test('halaman login dapat diakses tamu', function () {
 });
 
 test('user dapat login dengan kredensial benar', function () {
-    $user = User::factory()->create(['password' => 'password123']);
+    $login = Login::factory()->create(['password' => 'password123']);
 
     $response = $this->post(route('login'), [
-        'email' => $user->email,
+        'email' => $login->email,
         'password' => 'password123',
     ]);
 
@@ -107,10 +92,10 @@ test('user dapat login dengan kredensial benar', function () {
 });
 
 test('user gagal login dengan password salah', function () {
-    $user = User::factory()->create(['password' => 'password123']);
+    $login = Login::factory()->create(['password' => 'password123']);
 
     $response = $this->post(route('login'), [
-        'email' => $user->email,
+        'email' => $login->email,
         'password' => 'wrongpassword',
     ]);
 
@@ -119,8 +104,8 @@ test('user gagal login dengan password salah', function () {
 });
 
 test('user yang sudah login tidak bisa akses halaman register', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
+    $login = Login::factory()->create();
+    $this->actingAs($login);
 
     $response = $this->get(route('register'));
 
@@ -128,8 +113,8 @@ test('user yang sudah login tidak bisa akses halaman register', function () {
 });
 
 test('user yang sudah login tidak bisa akses halaman login', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
+    $login = Login::factory()->create();
+    $this->actingAs($login);
 
     $response = $this->get(route('login'));
 
@@ -137,13 +122,13 @@ test('user yang sudah login tidak bisa akses halaman login', function () {
 });
 
 test('halaman profile hanya bisa diakses user login', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
+    $login = Login::factory()->create();
+    $this->actingAs($login);
 
     $response = $this->get(route('profile.edit'));
 
     $response->assertStatus(200);
-    $response->assertSee($user->name);
+    $response->assertSee($login->email);
 });
 
 test('halaman profile tidak bisa diakses tamu', function () {
@@ -152,26 +137,24 @@ test('halaman profile tidak bisa diakses tamu', function () {
     $response->assertRedirect(route('login'));
 });
 
-test('user dapat mengupdate nama dan email', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
+test('user dapat mengupdate email', function () {
+    $login = Login::factory()->create();
+    $this->actingAs($login);
 
     $response = $this->put(route('profile.update'), [
-        'name' => 'Nama Baru',
         'email' => 'baru@example.com',
     ]);
 
     $response->assertRedirect(route('profile.edit'));
-    $this->assertDatabaseHas('users', [
-        'id' => $user->id,
-        'name' => 'Nama Baru',
+    $this->assertDatabaseHas('login', [
+        'id_login' => $login->id_login,
         'email' => 'baru@example.com',
     ]);
 });
 
 test('user dapat mengganti password', function () {
-    $user = User::factory()->create(['password' => 'passwordlama']);
-    $this->actingAs($user);
+    $login = Login::factory()->create(['password' => 'passwordlama']);
+    $this->actingAs($login);
 
     $response = $this->put(route('profile.password'), [
         'current_password' => 'passwordlama',
@@ -182,12 +165,12 @@ test('user dapat mengganti password', function () {
     $response->assertRedirect(route('profile.edit'));
 
     Auth::logout();
-    $this->assertTrue(Auth::attempt(['email' => $user->email, 'password' => 'passwordbaru']));
+    $this->assertTrue(Auth::attempt(['email' => $login->email, 'password' => 'passwordbaru']));
 });
 
 test('ganti password gagal jika current password salah', function () {
-    $user = User::factory()->create(['password' => 'passwordlama']);
-    $this->actingAs($user);
+    $login = Login::factory()->create(['password' => 'passwordlama']);
+    $this->actingAs($login);
 
     $response = $this->put(route('profile.password'), [
         'current_password' => 'passwordsalah',
@@ -199,8 +182,8 @@ test('ganti password gagal jika current password salah', function () {
 });
 
 test('user dapat logout', function () {
-    $user = User::factory()->create();
-    $this->actingAs($user);
+    $login = Login::factory()->create();
+    $this->actingAs($login);
     $this->assertAuthenticated();
 
     $response = $this->post(route('logout'));

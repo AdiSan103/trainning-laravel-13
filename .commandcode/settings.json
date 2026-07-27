@@ -9,7 +9,8 @@
       "mcp__laravel-boost__search-docs",
       "Shell(php artisan test --compact)",
       "Shell(vendor/bin/pint:*)",
-      "powershell"
+      "powershell",
+      "mcp__laravel-boost__last-error"
     ],
     "deny": [],
     "defaultMode": "default"
